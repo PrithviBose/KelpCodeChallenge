@@ -114,7 +114,7 @@ ORDER BY
     END;`;
         const result = await pool.query(query);
         console.table(result.rows)
-        res.json(result.rows);
+        res.status(200).json(result.rows);
     } catch (err) {
         console.error('Error fetching data:', err.stack);
         res.status(500).send('Error fetching data');

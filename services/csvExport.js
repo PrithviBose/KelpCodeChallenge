@@ -45,7 +45,6 @@ function convertCSVtoJSON(req, res) {
 
 
 async function insertRow(results) {
-    // Determine the batch size as 1/4th of the results length
     let batchSize = 5000;
     let count = 0
 

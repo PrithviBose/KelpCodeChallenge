@@ -86,21 +86,32 @@ async function insertRow(results) {
 
 async function getData(res) {
     try {
-        const query = `SELECT 
+        const query = `WITH AgeGroupData AS (
+    SELECT 
+        CASE
+            WHEN age < 20 THEN '< 20'
+            WHEN age BETWEEN 20 AND 40 THEN '20 to 40'
+            WHEN age BETWEEN 40 AND 60 THEN '40 to 60'
+            WHEN age > 60 THEN '> 60'
+        END AS age_group,
+        ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM users), 2) AS Percentage
+    FROM users
+    GROUP BY 
+        CASE
+            WHEN age < 20 THEN '< 20'
+            WHEN age BETWEEN 20 AND 40 THEN '20 to 40'
+            WHEN age BETWEEN 40 AND 60 THEN '40 to 60'
+            WHEN age > 60 THEN '> 60'
+    END
+)
+SELECT * 
+FROM AgeGroupData
+ORDER BY 
     CASE
-        WHEN age < 20 THEN '< 20'
-        WHEN age BETWEEN 20 AND 40 THEN '20 to 40'
-        WHEN age BETWEEN 40 AND 60 THEN '40 to 60'
-        WHEN age > 60 THEN '> 60'
-    END AS age_group,
-    ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM users),2) AS Percentage
-FROM users
-GROUP BY 
-    CASE
-        WHEN users.age < 20 THEN '< 20'
-        WHEN users.age BETWEEN 20 AND 40 THEN '20 to 40'
-        WHEN users.age BETWEEN 40 AND 60 THEN '40 to 60'
-        WHEN users.age > 60 THEN '> 60'
+        WHEN age_group = '< 20' THEN 1
+        WHEN age_group = '20 to 40' THEN 2
+        WHEN age_group = '40 to 60' THEN 3
+        WHEN age_group = '> 60' THEN 4
     END;`;
         const result = await pool.query(query);
         console.table(result.rows)

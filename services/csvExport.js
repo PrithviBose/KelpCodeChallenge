@@ -42,7 +42,9 @@ function convertCSVtoJSON(req, res) {
         res.status(500).send('Server error');
     }
 }
-
+/*
+* This function reads the CSV file and converts it into JSON without using any parser.
+*/
 async function convertCSVtoJSONWithoutParser(req, res) {
     try {
         const csvFilePath = process.env.CSV_FILE_PATH;
@@ -50,23 +52,24 @@ async function convertCSVtoJSONWithoutParser(req, res) {
         if (!csvFilePath || !fs.existsSync(csvFilePath)) {
             return res.status(400).send('CSV file not found or invalid path in environment variable');
         }
-
+        //Gives the content of the file stringified
         const fileContent = fs.readFileSync(csvFilePath, 'utf-8');
 
         if (!fileContent.trim()) {
             return res.status(400).send('CSV file is empty');
         }
+        //Convert the lines of the file into an array
         const lines = fileContent.trim().split('\n');
-
+        // First line is always the header as per our assumption
         const headers = lines[0].split(',').map(header => header.trim());
-
+        // Remove the first line from the array and loop through the rest of the lines
         const results = lines.slice(1).map(line => {
-            const values = line.split(',').map(value => value.trim());
+            const values = line.split(',').map(value => value.trim()); // Get the values of the line in form of an array
             const parsedRow = {};
 
             headers.forEach((header, index) => {
                 const splittedKey = header.split('.');
-                splittedKey.reduce((acc, curr, i) => {
+                splittedKey.reduce((acc, curr, i) => {      // Using Reduce we deep dive into the nested object and assign the value to the last key
                     if (i === splittedKey.length - 1) {
                         acc[curr] = values[index];
                     } else if (!acc[curr]) {
@@ -79,8 +82,8 @@ async function convertCSVtoJSONWithoutParser(req, res) {
             return parsedRow;
         });
 
-        await insertRow(results)
-            .then(() => getData(res))
+        await insertRow(results)    // Insert the data into the database
+            .then(() => getData(res))   // Fetch the data from the database
             .catch(err => {
                 console.error('Error inserting data:', err);
                 res.status(500).send('Error inserting data into the database');
@@ -91,6 +94,10 @@ async function convertCSVtoJSONWithoutParser(req, res) {
         res.status(500).send('Server error');
     }
 }
+
+/*
+* This function inserts the rows into the database.
+*/
 
 async function insertRow(results) {
     let batchSize = 5000;
@@ -130,6 +137,10 @@ async function insertRow(results) {
     }
 }
 
+
+/*
+* This function fetches the data from the database and returns the result.
+*/
 
 async function getData(res) {
     try {

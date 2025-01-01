@@ -43,6 +43,54 @@ function convertCSVtoJSON(req, res) {
     }
 }
 
+async function convertCSVtoJSONWithoutParser(req, res) {
+    try {
+        const csvFilePath = process.env.CSV_FILE_PATH;
+
+        if (!csvFilePath || !fs.existsSync(csvFilePath)) {
+            return res.status(400).send('CSV file not found or invalid path in environment variable');
+        }
+
+        const fileContent = fs.readFileSync(csvFilePath, 'utf-8');
+
+        if (!fileContent.trim()) {
+            return res.status(400).send('CSV file is empty');
+        }
+        const lines = fileContent.trim().split('\n');
+
+        const headers = lines[0].split(',').map(header => header.trim());
+
+        const results = lines.slice(1).map(line => {
+            const values = line.split(',').map(value => value.trim());
+            const parsedRow = {};
+
+            headers.forEach((header, index) => {
+                const splittedKey = header.split('.');
+                splittedKey.reduce((acc, curr, i) => {
+                    if (i === splittedKey.length - 1) {
+                        acc[curr] = values[index];
+                    } else if (!acc[curr]) {
+                        acc[curr] = {};
+                    }
+                    return acc[curr];
+                }, parsedRow);
+            });
+
+            return parsedRow;
+        });
+
+        await insertRow(results)
+            .then(() => getData(res))
+            .catch(err => {
+                console.error('Error inserting data:', err);
+                res.status(500).send('Error inserting data into the database');
+            });
+
+    } catch (error) {
+        console.error('Server error:', error);
+        res.status(500).send('Server error');
+    }
+}
 
 async function insertRow(results) {
     let batchSize = 5000;
@@ -121,5 +169,5 @@ ORDER BY
     }
 }
 
-module.exports = { convertCSVtoJSON, getData };
+module.exports = { convertCSVtoJSON, convertCSVtoJSONWithoutParser, getData };
 
